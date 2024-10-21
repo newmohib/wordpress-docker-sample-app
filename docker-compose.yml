@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   mysql:
@@ -12,13 +12,17 @@ services:
     networks:
       - wp-network
 
+    volumes:
+      - mysql_data:/var/lib/mysql # Mount the volume for MySQL data
+
   wordpress:
-    build: .  # Build from the current directory using the Dockerfile
+    build: . # Build from the current directory using the Dockerfile
+    image: custom_wordpress # Set the desired image name
     restart: always
     ports:
-      - "8080:80"
+      - "5001:80"
     environment:
-      WORDPRESS_DB_HOST: mysql  # Use the MySQL service name as the host
+      WORDPRESS_DB_HOST: mysql # Use the MySQL service name as the host
       WORDPRESS_DB_NAME: wordpress_db
       WORDPRESS_DB_USER: wordpress_user
       WORDPRESS_DB_PASSWORD: your_password
@@ -27,3 +31,7 @@ services:
 
 networks:
   wp-network:
+
+volumes:
+  mysql_data:
+    driver: local

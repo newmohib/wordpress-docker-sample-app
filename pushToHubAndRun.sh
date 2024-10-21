@@ -1,8 +1,10 @@
 #!/bin/bash
 
+DOCKER_HUB_USERNAME="newmohib"  # Replace with your Docker Hub username
 IMAGE_NAME="custom_wordpress"  # Name for the custom Docker image
 BACKUP_IMAGE_NAME="${IMAGE_NAME}_backup_$(date +%Y%m%d%H%M%S)"  # Backup image name with timestamp
 CONTAINER_NAME="wordpress_container"  # Name for the running WordPress container
+IMAGE_TAG="latest"
 
 # Function to stop and remove the Docker container if it exists
 function stop_and_remove_container() {
@@ -45,6 +47,19 @@ function run_backup_image() {
     fi
 }
 
+# Function to push the new Docker image to Docker Hub
+function push_to_docker_hub() {
+    echo "Tagging the new image for Docker Hub..."
+    docker tag $IMAGE_NAME:${IMAGE_TAG} ${DOCKER_HUB_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}
+
+    echo "Pushing the new image to Docker Hub..."
+    if docker push ${DOCKER_HUB_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}; then
+        echo "New image successfully pushed to Docker Hub: ${DOCKER_HUB_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
+    else
+        echo "Failed to push the new image to Docker Hub."
+    fi
+}
+
 # Check if the "src" folder is empty or not
 if [ ! "$(ls -A ./src)" ]; then
     echo "Cloning WordPress source code..."
@@ -64,6 +79,9 @@ echo "Building the custom WordPress Docker image..."
 if docker-compose build; then
     echo "Build succeeded as new Image: $IMAGE_NAME. Starting the containers..."
     docker-compose up -d
+
+    # Push the new image to Docker Hub if the build is successful
+    push_to_docker_hub
 else
     echo "Build failed. Reverting to the backup image..."
     # Run the backup image if the build failed

@@ -1,8 +1,10 @@
 #!/bin/bash
 
+DOCKER_HUB_USERNAME="newmohib"  # Replace with your Docker Hub username
 IMAGE_NAME="custom_wordpress"  # Name for the custom Docker image
 BACKUP_IMAGE_NAME="${IMAGE_NAME}_backup_$(date +%Y%m%d%H%M%S)"  # Backup image name with timestamp
 CONTAINER_NAME="wordpress_container"  # Name for the running WordPress container
+IMAGE_TAG="latest"
 
 # Function to stop and remove the Docker container if it exists
 function stop_and_remove_container() {
@@ -45,6 +47,32 @@ function run_backup_image() {
     fi
 }
 
+# Function to push the new Docker image to Docker Hub
+function push_to_docker_hub() {
+    echo "Tagging the new image for Docker Hub..."
+    docker tag $IMAGE_NAME:${IMAGE_TAG} ${DOCKER_HUB_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}
+
+    echo "Pushing the new image to Docker Hub..."
+    if docker push ${DOCKER_HUB_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}; then
+        echo "New image successfully pushed to Docker Hub: ${DOCKER_HUB_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
+    else
+        echo "Failed to push the new image to Docker Hub."
+    fi
+}
+
+# Function to check if the new image differs from the backup image
+function check_image_difference() {
+    NEW_IMAGE_DIGEST=$(docker image inspect --format='{{index .RepoDigests 0}}' $IMAGE_NAME)
+    BACKUP_IMAGE_DIGEST=$(docker image inspect --format='{{index .RepoDigests 0}}' $BACKUP_IMAGE_NAME 2>/dev/null)
+
+    if [ "$NEW_IMAGE_DIGEST" != "$BACKUP_IMAGE_DIGEST" ]; then
+        echo "The new image is different from the backup image."
+        push_to_docker_hub
+    else
+        echo "The new image is identical to the backup image. No need to push."
+    fi
+}
+
 # Check if the "src" folder is empty or not
 if [ ! "$(ls -A ./src)" ]; then
     echo "Cloning WordPress source code..."
@@ -64,6 +92,9 @@ echo "Building the custom WordPress Docker image..."
 if docker-compose build; then
     echo "Build succeeded as new Image: $IMAGE_NAME. Starting the containers..."
     docker-compose up -d
+
+    # Check if the new image is different from the backup image before pushing to Docker Hub
+    check_image_difference
 else
     echo "Build failed. Reverting to the backup image..."
     # Run the backup image if the build failed
