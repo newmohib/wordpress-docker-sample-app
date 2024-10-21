@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: your_root_password
+      MYSQL_DATABASE: wordpress_db
+      MYSQL_USER: wordpress_user
+      MYSQL_PASSWORD: your_password
+    networks:
+      - wp-network
+
+  wordpress:
+    build: .  # Build from the current directory using the Dockerfile
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      WORDPRESS_DB_HOST: mysql  # Use the MySQL service name as the host
+      WORDPRESS_DB_NAME: wordpress_db
+      WORDPRESS_DB_USER: wordpress_user
+      WORDPRESS_DB_PASSWORD: your_password
+    networks:
+      - wp-network
+
+networks:
+  wp-network:
